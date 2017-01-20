@@ -8,6 +8,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/myesui/uuid"
 	"github.com/screwdriver-cd/launcher/screwdriver"
 )
 
@@ -40,12 +41,13 @@ func doRun(cmd screwdriver.CommandDef, emitter screwdriver.Emitter, env []string
 		return ExitUnknown, fmt.Errorf("Unexpected error with writing temporary output file: %v", err)
 	}
 
+	guid := uuid.NewV4()
 	shargs := []string{"-c"}
 	executionCommand := []string{
 		"source",
 		file,
 		";echo",
-		file, // ?? this is actually identifier
+		guid.String(), // Need to use this to detect on finish
 		"$?",
 	}
 	shargs = append(shargs, strings.Join(executionCommand, " "))

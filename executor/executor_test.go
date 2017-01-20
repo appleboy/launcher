@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -173,21 +174,22 @@ func TestRunSingle(t *testing.T) {
 				t.Errorf("Expected 2 arguments to exec, got %d: %v", len(args), args)
 			}
 
-			// if args[0] != "-e" {
-			// 	t.Errorf("Expected sh [-e -c source] to be called, got sh %v", args)
-			// }
-
 			if args[0] != "-c" {
 				t.Errorf("Expected sh [-e -c source] to be called, got sh %v", args)
 			}
 
 			executionCommand := strings.Split(args[1], " ")
 			if executionCommand[0] != "source" {
-				t.Errorf("Expected sh [-c 'source <file>; echo file $?'] to be called, got sh %v", args)
+				t.Errorf("Expected sh [-c 'source <file>; echo guid $?'] to be called, got sh %v", args)
 			}
 
 			if executionCommand[2] != ";echo" {
-				t.Errorf("Expected sh [-c 'source <file>; echo file $?'] to be called, got sh %v", args)
+				t.Errorf("Expected sh [-c 'source <file>; echo guid $?'] to be called, got sh %v", args)
+			}
+
+			guidMatcher, _ := regexp.Compile("^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+			if !guidMatcher.MatchString(executionCommand[3]) {
+				t.Errorf("Expected sh [-c 'source <>; echo guid $?'] to be called, got sh %v", args)
 			}
 
 			if executionCommand[4] != "$?" {
@@ -246,7 +248,7 @@ func TestRunMulti(t *testing.T) {
 
 	called := []string{}
 	execCommand = getFakeExecCommand(func(cmd string, args ...string) {
-    fmt.Fprintf(os.Stderr, "Called %v\n", args[1:])
+		fmt.Fprintf(os.Stderr, "Called %v\n", args[1:])
 		called = append(called, args[1:]...)
 	})
 
@@ -394,14 +396,17 @@ func TestEnv(t *testing.T) {
 		line := scanner.Text()
 		split := strings.Split(line, "=")
 		if len(split) != 2 {
-			foundCmd = line
+			// Capture that "$ env" output line
+			if strings.HasPrefix(line, "$") {
+				foundCmd = line
+			}
 			continue
 		}
 		found[split[0]] = split[1]
 	}
 
-	if !strings.Contains(foundCmd, "output.sh") {
-		t.Errorf("foundCmd = %q, want %q", foundCmd, "<TMP FILEPATH>/output.sh 0")
+	if foundCmd != "$ env" {
+		t.Errorf("foundCmd = %q, want %q", foundCmd, "env")
 	}
 
 	for k, v := range want {
