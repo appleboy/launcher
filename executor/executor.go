@@ -40,7 +40,7 @@ func doRun(cmd screwdriver.CommandDef, emitter screwdriver.Emitter, env []string
 		return ExitUnknown, fmt.Errorf("Unexpected error with writing temporary output file: %v", err)
 	}
 
-	shargs := []string{"-e", "-c"}
+	shargs := []string{"-c"}
 	executionCommand := []string{
 		"source",
 		file,
